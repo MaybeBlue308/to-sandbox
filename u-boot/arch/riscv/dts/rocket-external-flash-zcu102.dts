@@ -1,0 +1,158 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Rocket external-SPI-NOR profile for rocket_externel_flash.bit.
+ *
+ * This is derived from rocker_external_flash/rocket_externel_flash.dts:
+ * two Rocket harts, 2 GiB at 0x80000000, UART 0x10020000 and the SiFive
+ * SPI controller at 0x10030000. PS QSPI is retained as the boot/artifact
+ * source; the SiFive SPI NOR is used only for redundant environments.
+ */
+/dts-v1/;
+
+#include "binman.dtsi"
+
+/ {
+	#address-cells = <2>;
+	#size-cells = <2>;
+	compatible = "sifive,rocket0", "ucb-bar,chipyard-dev";
+	model = "SOVRA Rocket ZCU102 external SPI NOR";
+
+	aliases {
+		serial0 = &uart0;
+		spi0 = &qspi;
+		spi1 = &external_spi;
+	};
+
+	chosen {
+		stdout-path = &uart0;
+		bootargs = "root=/dev/ram rw console=ttySIF0,115200 earlycon=sbi";
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		timebase-frequency = <500000>;
+
+		cpu0: cpu@0 {
+			compatible = "sifive,rocket0", "riscv";
+			device_type = "cpu";
+			reg = <0>;
+			mmu-type = "riscv,sv39";
+			riscv,isa = "rv64imafdcbzicsr_zifencei_zihpm_zfh_zba_zbb_zbs_xrocket";
+			status = "okay";
+			cpu0_intc: interrupt-controller {
+				#interrupt-cells = <1>;
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+			};
+		};
+
+		cpu1: cpu@1 {
+			compatible = "sifive,rocket0", "riscv";
+			device_type = "cpu";
+			reg = <1>;
+			mmu-type = "riscv,sv39";
+			riscv,isa = "rv64imafdcbzicsr_zifencei_zihpm_zfh_zba_zbb_zbs_xrocket";
+			status = "okay";
+			cpu1_intc: interrupt-controller {
+				#interrupt-cells = <1>;
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+			};
+		};
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x80000000>;
+	};
+
+	/* Existing boot-artifact store: retain the old PS-QSPI contract. */
+	qspi_ref_clk: qspi-ref-clock {
+		#clock-cells = <0>;
+		clock-frequency = <300000000>;
+		clock-output-names = "qspi_ref_clk";
+		compatible = "fixed-clock";
+	};
+
+	qspi: spi@ff0f0000 {
+		compatible = "xlnx,zynqmp-qspi-1.0";
+		status = "okay";
+		clocks = <&qspi_ref_clk>;
+		clock-names = "ref_clk";
+		num-cs = <1>;
+		has-io-mode;
+		reg = <0x0 0xff0f0000 0x0 0x1000>,
+		      <0x0 0xc0000000 0x0 0x8000000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		flash@0 {
+			compatible = "jedec,spi-nor";
+			reg = <0>;
+			spi-max-frequency = <30000000>;
+			spi-rx-bus-width = <4>;
+			spi-tx-bus-width = <4>;
+		};
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "ucb-bar,chipyard-soc", "simple-bus";
+		ranges = <0x0 0x0 0x0 0x20000000>;
+
+		pbus_clock: pbus-clock {
+			#clock-cells = <0>;
+			clock-frequency = <50000000>;
+			clock-output-names = "pbus_clock";
+			compatible = "fixed-clock";
+		};
+
+		clint@2000000 {
+			compatible = "riscv,clint0";
+			interrupts-extended = <&cpu0_intc 3 &cpu0_intc 7
+					       &cpu1_intc 3 &cpu1_intc 7>;
+			reg = <0x02000000 0x00010000>;
+		};
+
+		plic: interrupt-controller@c000000 {
+			#interrupt-cells = <1>;
+			compatible = "riscv,plic0";
+			interrupt-controller;
+			interrupts-extended = <&cpu0_intc 11 &cpu0_intc 9
+					       &cpu1_intc 11 &cpu1_intc 9>;
+			reg = <0x0c000000 0x04000000>;
+			riscv,max-priority = <3>;
+			riscv,ndev = <2>;
+		};
+
+		uart0: serial@10020000 {
+			compatible = "sifive,uart0";
+			clocks = <&pbus_clock>;
+			clock-frequency = <50000000>;
+			current-speed = <115200>;
+			interrupt-parent = <&plic>;
+			interrupts = <1>;
+			reg = <0x10020000 0x1000>;
+		};
+
+		external_spi: spi@10030000 {
+			compatible = "sifive,spi0";
+			clocks = <&pbus_clock>;
+			interrupt-parent = <&plic>;
+			interrupts = <2>;
+			reg = <0x10030000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			flash@0 {
+				compatible = "jedec,spi-nor";
+				reg = <0>;
+				/* The supplied RTL DTS rates this peripheral at 10 MHz. */
+				spi-max-frequency = <10000000>;
+				/* CONFIG_ENV_SPI_BUS=1: only env A/B below 8 MiB. */
+			};
+		};
+	};
+};

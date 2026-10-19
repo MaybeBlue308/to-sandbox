@@ -1,0 +1,117 @@
+# Rocket ZCU102 architecture and execution mode
+CONFIG_RISCV=y
+CONFIG_TARGET_QEMU_VIRT=y
+CONFIG_ARCH_RV64I=y
+CONFIG_RISCV_SMODE=y
+CONFIG_RISCV_SINGLE_HART_HANDOFF=y
+CONFIG_SOVRA_ZCU102=y
+CONFIG_SOVRA_EXTERNAL_FLASH=y
+
+# DDR, stack, malloc and load addresses
+CONFIG_SYS_MALLOC_LEN=0x800000
+CONFIG_NR_DRAM_BANKS=1
+CONFIG_HAS_CUSTOM_SYS_INIT_SP_ADDR=y
+CONFIG_CUSTOM_SYS_INIT_SP_ADDR=0x80200000
+CONFIG_SYS_LOAD_ADDR=0x88000000
+CONFIG_SYS_BOOTM_LEN=0x4000000
+CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+
+# Control device tree supplied with the U-Boot image
+CONFIG_DEFAULT_DEVICE_TREE="rocket-external-flash-zcu102"
+CONFIG_OF_SEPARATE=y
+# TARGET_QEMU_VIRT selects OF_BOARD/OF_OMIT_DTB through OF_HAS_PRIOR_STAGE.
+# This raw Rocket image appends its control DTB to u-boot.bin.
+# CONFIG_OF_BOARD is not set
+# CONFIG_OF_OMIT_DTB is not set
+# Rocket peripherals are discovered directly from the control DTB.
+# CONFIG_BOARD_INIT is not set
+CONFIG_BOARD_LATE_INIT=y
+
+# Redundant environment A/B in external SPI-NOR
+CONFIG_ENV_SIZE=0x20000
+CONFIG_ENV_IS_IN_SPI_FLASH=y
+CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+CONFIG_ENV_OFFSET=0x00700000
+CONFIG_ENV_OFFSET_REDUND=0x00780000
+CONFIG_ENV_SECT_SIZE=0x10000
+CONFIG_ENV_SPI_BUS=1
+CONFIG_ENV_SPI_CS=0
+CONFIG_ENV_SPI_MAX_HZ=25000000
+CONFIG_ENV_SPI_MODE=0
+CONFIG_CMD_SAVEENV=y
+
+# SPI controller, external NOR and firmware update commands
+CONFIG_CMD_SF=y
+CONFIG_SPI=y
+CONFIG_DM_SPI=y
+CONFIG_SPI_MEM=y
+CONFIG_SPI_SIFIVE=y
+CONFIG_SPI_FLASH=y
+CONFIG_DM_SPI_FLASH=y
+CONFIG_SPI_FLASH_SFDP_SUPPORT=y
+CONFIG_SPI_FLASH_WINBOND=y
+CONFIG_SPI_FLASH_MACRONIX=y
+CONFIG_SPI_FLASH_MICRON=y
+# CONFIG_ZYNQMP_GQSPI is not set
+CONFIG_CLK=y
+CONFIG_DM_MTD=y
+CONFIG_FLASH_SHOW_PROGRESS=0
+
+# FIT image, signature verification and Linux handoff
+CONFIG_FIT=y
+CONFIG_FIT_SIGNATURE=y
+CONFIG_FIT_VERBOSE=y
+CONFIG_RSA=y
+CONFIG_RSA_SOFTWARE_EXP=y
+CONFIG_SHA256=y
+CONFIG_CMD_BOOTM=y
+CONFIG_CMD_BOOTI=y
+
+# Boot policy, menu and environment command scripts
+CONFIG_DISTRO_DEFAULTS=y
+CONFIG_USE_PREBOOT=y
+CONFIG_PREBOOT="setenv fdt_addr ${fdtcontroladdr}; fdt addr ${fdtcontroladdr};"
+CONFIG_BOOTDELAY=3
+CONFIG_AUTOBOOT_MENU_ON_ANY_KEY=y
+CONFIG_USE_BOOTCOMMAND=y
+CONFIG_BOOTCOMMAND="run boot_selected"
+# CONFIG_BOOTSTD is not set
+# CONFIG_BOOTSTD_FULL is not set
+# CONFIG_BOOTSTD_DEFAULTS is not set
+CONFIG_CMD_BOOTMENU=y
+CONFIG_BOOTMENU_NO_BUILTIN_EXIT=y
+CONFIG_CMD_ITEST=y
+CONFIG_CMD_SETEXPR=y
+
+# Boot from eMMC
+# The command is enabled even though the current control DT has no MMC device.
+CONFIG_CMD_MMC=y
+CONFIG_MMC=y
+
+# Network Boot and TFTP firmware download
+# The commands are enabled even though the current control DT has no Ethernet device.
+CONFIG_NET=y
+CONFIG_NET_LEGACY=y
+CONFIG_CMD_NET=y
+CONFIG_CMD_DHCP=y
+CONFIG_CMD_TFTPBOOT=y
+CONFIG_NET_TFTP_VARS=y
+
+# Runtime information
+CONFIG_DISPLAY_CPUINFO=y
+CONFIG_DISPLAY_BOARDINFO=y
+
+# Hardware classes absent from the current Rocket bitstream/device tree
+# PS-QSPI keeps the boot image; the SiFive NOR is writable from U-Boot.
+# CONFIG_MTD_NOR_FLASH is not set
+# CONFIG_CFI_FLASH is not set
+# CONFIG_PCI is not set
+# CONFIG_AHCI is not set
+# CONFIG_SCSI is not set
+# CONFIG_NVME_PCI is not set
+# CONFIG_E1000 is not set
+# CONFIG_USB is not set
+# CONFIG_VIDEO is not set
+# CONFIG_VIRTIO_MMIO is not set
+# CONFIG_VIRTIO_PCI is not set
+# CONFIG_HTIF_CONSOLE is not set
